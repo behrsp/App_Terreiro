@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(uuid())
+  nome             String
+  celular          String    @unique
+  senha            String
+  perfil           String    // 'dirigente', 'oga', 'corrente'
+  giraPertencente  String?   // apenas para corrente
+  guiaResponsavel  String?   // 'Pai Érick', 'Pai Fábio', 'Pai Rafael', 'Mãe Ju', 'Mãe Izabel'
+  isCapitao        Boolean   @default(false)
+  dataCadastro     DateTime  @default(now())
+  
+  calendarios      Calendario[]
+  eventos          Evento[]
+  pontosOgas       PontoOga[]
+  
+  solicitacoesFeitas SolicitacaoPonto[] @relation("PontoSolicitante")
+  pontosAvaliados    SolicitacaoPonto[] @relation("PontoAvaliador")
+  
+  consultasAssistencia ConsultaAssistencia[] @relation("AvaliadorAssistencia")
+  
+  consultasCorrente ConsultaCorrente[]
+}
+
+model Calendario {
+  id          String   @id @default(uuid())
+  tipo        String   // 'gira', 'limpeza'
+  dataEvento  DateTime @db.Date
+  descricao   String
+  
+  criadoPor   User     @relation(fields: [criadoPorId], references: [id])
+  criadoPorId String
+}
+
+model Evento {
+  id          String   @id @default(uuid())
+  titulo      String
+  descricao   String
+  dataEvento  DateTime @db.Date
+  
+  criadoPor   User     @relation(fields: [criadoPorId], references: [id])
+  criadoPorId String
+}
+
+model PontoOga {
+  id           String   @id @default(uuid())
+  nomePonto    String
+  linha        String   // 'Esquerda', 'Direita'
+  toque        String   // 'Ijexá', 'Nagô', 'Congo', 'Samba', 'Barra vento'
+  letra        String
+  linkYoutube  String?
+  
+  criadoPor    User     @relation(fields: [criadoPorId], references: [id])
+  criadoPorId  String
+}
+
+model SolicitacaoPonto {
+  id              String   @id @default(uuid())
+  nomePonto       String
+  linha           String   // 'Esquerda', 'Direita'
+  letra           String
+  linkYoutube     String?
+  status          String   @default("pendente") // 'pendente', 'aceito', 'rejeitado'
+  motivoRejeicao  String?
+  dataSolicitacao DateTime @default(now())
+
+  solicitante     User     @relation("PontoSolicitante", fields: [solicitanteId], references: [id])
+  solicitanteId   String
+
+  avaliador       User?    @relation("PontoAvaliador", fields: [avaliadorId], references: [id])
+  avaliadorId     String?
+}
+
+model ConsultaAssistencia {
+  id               String   @id @default(uuid())
+  nome             String
+  celular          String
+  email            String?
+  linhaSolicitada  String
+  status           String   @default("pendente") // 'pendente', 'aprovada', 'rejeitada', 'atendida', 'nao_atendida'
+  dataCadastro     DateTime @default(now())
+
+  avaliador       User?    @relation("AvaliadorAssistencia", fields: [avaliadorId], references: [id])
+  avaliadorId     String?
+}
+
+model ConsultaCorrente {
+  id              String   @id @default(uuid())
+  nomeEntidade    String
+  status          String   @default("pendente") // 'pendente', 'aprovada', 'rejeitada'
+  dataCadastro    DateTime @default(now())
+
+  solicitante     User     @relation(fields: [solicitanteId], references: [id])
+  solicitanteId   String
+}
+
+model Reclamacao {
+  id            String   @id @default(uuid())
+  mensagem      String
+  dataEnvio     DateTime @default(now())
+}
